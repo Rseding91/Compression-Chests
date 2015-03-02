@@ -89,8 +89,8 @@ data:extend(
 			charge_animation =
 			{
 				filename = "__Compression Chests__/graphics/Compression - power - charging.png",
-				frame_width = 72,
-				frame_height = 62,
+				width = 72,
+				height = 62,
 				line_length = 1,
 				frame_count = 1,
 				shift = {0.49145, -0.25},

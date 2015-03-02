@@ -9,7 +9,6 @@ local energyPerItemMoved = 1000
 -- Set to 0 to enable - NOTE you must also enable the research in Compression Chests\prototypes\technologies.lua
 local maximumPickedUpCompressionChests = false
 local loaded
-local ticks
 
 game.forces.player.recipes["compression-chest"].enabled = game.forces.player.technologies["logistics-3"].researched
 game.forces.player.recipes["compression-power-pole"].enabled = game.forces.player.technologies["logistics-3"].researched
@@ -27,7 +26,9 @@ game.onload(function()
 		if glob.chests ~= nil then
 			chests = glob.chests
 			game.onevent(defines.events.ontick, tickChests)
-			ticks = 0
+			if glob.ticks == nil then
+				glob.ticks = 0
+			end
 		end
 		
 		if glob.minedChests ~= nil then
@@ -56,6 +57,7 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 	local countBefore
 	local countAfter
 	local chestHasPower
+	local player = game.players[event.playerindex]
 	
 	if entity.name == "compression-chest" then
 		if chests ~= nil then
@@ -63,8 +65,8 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 				if v[1].valid then
 					if entity.equals(v[1]) then
 						if v[2] ~= 0 then
-							if game.player.cursorstack ~= nil and (game.player.cursorstack.name == v[3] or game.player.cursorstack.name == "compression-mover") then
-								if game.player.cursorstack.name == v[3] then
+							if player.cursorstack ~= nil and (player.cursorstack.name == v[3] or player.cursorstack.name == "compression-mover") then
+								if player.cursorstack.name == v[3] then
 									-- Fill the player's inventory with as much chest contents as it can hold
 									if v[12] ~= nil then
 										energyRequired = v[2] * energyPerItemMoved
@@ -90,9 +92,9 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 										
 										if moveAmount > 0 then
 											-- Transfer as many items as possible
-											playerItemCount = game.player.getitemcount(v[3])
-											game.player.insert({name = v[3], count = moveAmount})
-											insertedCount = game.player.getitemcount(v[3]) - playerItemCount
+											playerItemCount = player.getitemcount(v[3])
+											player.insert({name = v[3], count = moveAmount})
+											insertedCount = player.getitemcount(v[3]) - playerItemCount
 											v[2] = v[2] - insertedCount
 											energyRequired = insertedCount * energyPerItemMoved
 											
@@ -116,10 +118,10 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 												end
 											end
 										else
-											game.player.print("Insufficient power to move items.")
+											player.print("Insufficient power to move items.")
 										end
 									else
-										game.player.print("No Compression Power Poles within range.")
+										player.print("No Compression Power Poles within range.")
 									end
 									
 									newChestPosition = entity.position
@@ -162,9 +164,9 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 											entity.getinventory(1).clear()
 											chestItemName = "compression-chest-mined-" .. chestNumber
 											
-											countBefore = game.player.getitemcount(chestItemName)
-											game.player.insert({name = chestItemName, count = 1})
-											countAfter = game.player.getitemcount(chestItemName)
+											countBefore = player.getitemcount(chestItemName)
+											player.insert({name = chestItemName, count = 1})
+											countAfter = player.getitemcount(chestItemName)
 											if countBefore == countAfter then
 												game.createentity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
 											end
@@ -183,18 +185,18 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 												game.onevent(defines.events.ontick, nil)
 											end
 										else
-											game.player.print("Unable to pick up Compression Chest with inventory:")
-											game.player.print("Your current limit is " .. maximumPickedUpCompressionChests .. " at the same time.")
-											game.player.print("")
-											game.player.print("If for some reason the previous picked up chests don't exist you can:")
-											game.player.print("Spawn in a \"reset-compression-chests\" and placing it in the world to reset the picked-up chest list.")
+											player.print("Unable to pick up Compression Chest with inventory:")
+											player.print("Your current limit is " .. maximumPickedUpCompressionChests .. " at the same time.")
+											player.print("")
+											player.print("If for some reason the previous picked up chests don't exist you can:")
+											player.print("Spawn in a \"reset-compression-chests\" and placing it in the world to reset the picked-up chest list.")
 											--game.player.print("If you do place a \"reset-compression-chests\" *ALL* picked-up compression chests will lose their inventories.")
 											newChestPosition = entity.position
 										end
 									else
 										-- Attempt to move the chest closer to the player
-										difX = game.player.position.x - entity.position.x
-										difY = game.player.position.y - entity.position.y
+										difX = player.position.x - entity.position.x
+										difY = player.position.y - entity.position.y
 										
 										if difX <= -1 then
 											newX = entity.position.x - 1
@@ -216,13 +218,14 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 										
 										-- If the chest can't be placed at the new location put it back where it was
 										if not game.canplaceentity({name = "compression-chest", position = newChestPosition}) then
-											game.player.print("Unable to move Compression Chest - no room.")
+											player.print("Unable to move Compression Chest - no room.")
 											newChestPosition = entity.position
 										end
 									end
 								end
 							else
-								game.player.print("Currently storing: " .. v[2] + v[11].getitemcount(v[3]) .. " " .. game.getlocaliseditemname(v[3]) .. ".")
+								player.print("Currently storing: " .. v[2] + v[11].getitemcount(v[3]) .. " " .. v[3])
+								
 								
 								if v[12] ~= nil then
 									for k2,v2 in pairs(v[12]) do
@@ -234,7 +237,7 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 								end
 								
 								if chestHasPower == nil then
-									game.player.print("Chest has no power.")
+									player.print("Chest has no power.")
 									chestHasPower = false
 								end
 								
@@ -272,16 +275,16 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 								
 								if v[12] == nil then
 									if chestHadPower and chestHasPower ~= false then
-										game.player.print("Moved chest now has no power pole in range.")
+										player.print("Moved chest now has no power pole in range.")
 									end
 								elseif not chestHadPower then
-									game.player.print("Moved chest now has at least 1 power pole in range.")
+									player.print("Moved chest now has at least 1 power pole in range.")
 								end
 							end
 						else
-							countBefore = game.player.getitemcount("compression-chest")
-							game.player.insert({name = "compression-chest", count = 1})
-							countAfter = game.player.getitemcount("compression-chest")
+							countBefore = player.getitemcount("compression-chest")
+							player.insert({name = "compression-chest", count = 1})
+							countAfter = player.getitemcount("compression-chest")
 							if countBefore == countAfter then
 								game.createentity({name = "item-on-ground", position = event.entity.position, stack = {name = "compression-chest", count = 1}})
 							end
@@ -315,7 +318,9 @@ game.onevent(defines.events.onentitydied, function(event)
 		for k,v in pairs(chests) do
 			if event.entity.equals(v[1]) then
 				if v[2] ~= 0 then
-					game.player.print("All is lost! A Compression Chest was destroyed and with it all it's contents: " .. v[2] .. " " .. game.getlocaliseditemname(v[3]) .. ".")
+					for _,player in pairs(game.players) do
+						player.print("All is lost! A Compression Chest was destroyed and with it all it's contents: " .. v[2] .. " " .. v[3] .. ".")
+					end
 				end
 				
 				table.remove(chests, k)
@@ -340,7 +345,9 @@ function entityBuilt(event)
 			glob.chests = {}
 			chests = glob.chests
 			game.onevent(defines.events.ontick, tickChests)
-			ticks = 0
+			if glob.ticks == nil then
+				glob.ticks = 0
+			end
 		end
 		
 		chest = {true, true, true, true, true, true, true, true, true, true, true, true, true}
@@ -377,7 +384,9 @@ function entityBuilt(event)
 		createdEntity.destroy()
 		minedChests = nil
 		glob.minedChests = nil
-		game.player.print("Compression Chest mined-chest list reset - all existing Compression mined-chests will revert to standard Compression chests when palced.")
+		for _,player in pairs(game.players) do
+			player.print("Compression Chest mined-chest list reset - all existing Compression mined-chests will revert to standard Compression chests when placed.")
+		end
 	else
 		if string.sub(createdEntity.name, 1, 24) == "compression-chest-mined-" then
 			local chestNumber
@@ -391,7 +400,9 @@ function entityBuilt(event)
 						glob.chests = {}
 						chests = glob.chests
 						game.onevent(defines.events.ontick, tickChests)
-						ticks = 0
+						if glob.ticks == nil then
+							ticks = 0
+						end
 					end
 					
 					newEntity = game.createentity({name = "compression-chest", position = createdEntity.position, force = game.forces.player})
@@ -450,6 +461,7 @@ function entityBuilt(event)
 end
 
 game.onevent(defines.events.onbuiltentity, entityBuilt)
+game.onevent(defines.events.onrobotbuiltentity, entityBuilt)
 
 function isTerminalChestInstalled()
 	if game.entityprototypes["terminal-chest"] == nil then
@@ -485,16 +497,12 @@ function findNeighbouringTCs(position)
 end
 
 function findNeighbouringCCPPs(position)
-	local poles
+	local poles = {}
 	local compressionPowerPoles
 	
 	compressionPowerPoles = game.findentitiesfiltered({area = {{x = position.x - 2.1, y = position.y - 2.1}, {x = position.x + 2.1, y = position.y + 2.1}}, name = "compression-power-pole"})
 	
 	for _,pole in pairs(compressionPowerPoles) do
-		if poles == nil then
-			poles = {}
-		end
-		
 		table.insert(poles, pole)
 	end
 	
@@ -554,7 +562,7 @@ function linkNeighbouringCCsCP(entity)
 end
 
 function tickChests()
-	if ticks > 0 then ticks = ticks - 1 else ticks = 10, executeTicks() end
+	if glob.ticks > 0 then glob.ticks = glob.ticks - 1 else glob.ticks = 10, executeTicks() end
 end
 
 function executeTicks()
@@ -943,7 +951,9 @@ function executeTicks()
 			end
 		else
 			-- If the entity isn't valid something other than the player or death removed it - recreate it
-			game.player.print("You can't remove a Compression Chest with robots or via other scripts due to game limitations - attempting to re-creating the chest at: x=" .. v[13].x .. ", y=" .. v[13].y .. "...")
+			for _,player in pairs(game.players) do
+				player.print("You can't remove a Compression Chest with robots or via other scripts due to game limitations - attempting to re-creating the chest at: x=" .. v[13].x .. ", y=" .. v[13].y .. "...")
+			end
 			newPosition = game.findnoncollidingposition("compression-chest", v[13], 10, 1)
 			
 			if newPosition ~= nil then
@@ -959,7 +969,9 @@ function executeTicks()
 				v[12] = findNeighbouringCCPPs(newPosition)						--Compression chest power poles
 				v[13] = newPosition
 			else
-				game.player.print("Impressive, you managed to find a way to erase the contents of a Compression Chest :) You may or may not want to reload and not do what you just did.")
+				for _,player in pairs(game.players) do
+					player.print("Impressive, you managed to find a way to erase the contents of a Compression Chest :) You may or may not want to reload and not do what you just did.")
+				end
 				table.remove(chests, k)
 				if #glob.chests == 0 then
 					chests = nil

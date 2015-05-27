@@ -10,16 +10,9 @@ local energyPerItemMoved = 1000
 local maximumPickedUpCompressionChests = false
 local loaded
 
-game.forces.player.recipes["compression-chest"].enabled = game.forces.player.technologies["logistics-3"].researched
-game.forces.player.recipes["compression-power-pole"].enabled = game.forces.player.technologies["logistics-3"].researched
-game.forces.player.recipes["compression-mover"].enabled = game.forces.player.technologies["move-compression-chest"].researched
-
 game.onload(function()
 	if not loaded then
 		loaded = true
-		game.forces.player.recipes["compression-chest"].enabled = game.forces.player.technologies["logistics-3"].researched
-		game.forces.player.recipes["compression-power-pole"].enabled = game.forces.player.technologies["logistics-3"].researched
-		game.forces.player.recipes["compression-mover"].enabled = game.forces.player.technologies["move-compression-chest"].researched
 		
 		terminalChestInstalled = isTerminalChestInstalled()
 		
@@ -29,6 +22,22 @@ game.onload(function()
 			if glob.ticks == nil then
 				glob.ticks = 0
 			end
+      
+      local prototypes = game.itemprototypes
+      for k,chest in pairs(chests) do
+        if chest[3] ~= nil and prototypes[chest[3]] == nil then
+          chest[2] = 0														--Stored count
+          chest[3] = nil                          --Stored name
+          chest[4] = nil                          --Stored half stack size
+          chest[5] = 0														--General sleep timer
+          chest[6] = 0														--Activity counter
+          chest[7] = 0														--Extended non-activity counter
+        end
+        
+        if not terminalChestInstalled then
+          chest[8] = nil
+        end
+      end
 		end
 		
 		if glob.minedChests ~= nil then
@@ -371,8 +380,6 @@ function entityBuilt(event)
 		chest[13] = createdEntity.position
 		
 		table.insert(chests, chest)
-	elseif createdEntity.name == "compression-power-pole-test" then
-		createdEntity.energy = 50000000000000
 	elseif createdEntity.name == "terminal-chest" then
 		linkNeighbouringCCsTC(createdEntity)
 	elseif createdEntity.name == "compression-power-pole-field" then

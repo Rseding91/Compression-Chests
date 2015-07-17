@@ -10,21 +10,25 @@ local energyPerItemMoved = 1000
 local maximumPickedUpCompressionChests = false
 local loaded
 
-game.onload(function()
+game.on_load(function()
 	if not loaded then
 		loaded = true
 		
 		terminalChestInstalled = isTerminalChestInstalled()
 		
-		if glob.chests ~= nil then
-			chests = glob.chests
-			game.onevent(defines.events.ontick, tickChests)
-			if glob.ticks == nil then
-				glob.ticks = 0
+		if global.chests ~= nil then
+			chests = global.chests
+			game.on_event(defines.events.on_tick, tickChests)
+			if global.ticks == nil then
+				global.ticks = 0
 			end
       
-      local prototypes = game.itemprototypes
+      local prototypes = game.item_prototypes
       for k,chest in pairs(chests) do
+        if chest[1].valid and chest[14] == nil then
+          chest[14] = chest[1].surface
+        end
+        
         if chest[3] ~= nil and prototypes[chest[3]] == nil then
           chest[2] = 0														--Stored count
           chest[3] = nil                          --Stored name
@@ -40,18 +44,18 @@ game.onload(function()
       end
 		end
 		
-		if glob.minedChests ~= nil then
-			minedChests = glob.minedChests
+		if global.minedChests ~= nil then
+			minedChests = global.minedChests
 		end
 	end
 end)
 
-game.oninit(function()
+game.on_init(function()
 	terminalChestInstalled = isTerminalChestInstalled()
 	loaded = true
 end)
 
-game.onevent(defines.events.onpreplayermineditem, function(event)
+game.on_event(defines.events.on_preplayer_mined_item, function(event)
 	local entity = event.entity
 	local playerItemCount
 	local insertedCount
@@ -66,16 +70,17 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 	local countBefore
 	local countAfter
 	local chestHasPower
-	local player = game.players[event.playerindex]
+	local player = game.players[event.player_index]
 	
 	if entity.name == "compression-chest" then
 		if chests ~= nil then
 			for k,v in pairs(chests) do
 				if v[1].valid then
-					if entity.equals(v[1]) then
+					if entity == v[1] then
 						if v[2] ~= 0 then
-							if player.cursorstack ~= nil and (player.cursorstack.name == v[3] or player.cursorstack.name == "compression-mover") then
-								if player.cursorstack.name == v[3] then
+              local playerCursorStack = player.cursor_stack
+							if playerCursorStack.valid_for_read and (playerCursorStack.name == v[3] or playerCursorStack.name == "compression-mover") then
+								if playerCursorStack.name == v[3] then
 									-- Fill the player's inventory with as much chest contents as it can hold
 									if v[12] ~= nil then
 										energyRequired = v[2] * energyPerItemMoved
@@ -101,9 +106,9 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 										
 										if moveAmount > 0 then
 											-- Transfer as many items as possible
-											playerItemCount = player.getitemcount(v[3])
+											playerItemCount = player.get_item_count(v[3])
 											player.insert({name = v[3], count = moveAmount})
-											insertedCount = player.getitemcount(v[3]) - playerItemCount
+											insertedCount = player.get_item_count(v[3]) - playerItemCount
 											v[2] = v[2] - insertedCount
 											energyRequired = insertedCount * energyPerItemMoved
 											
@@ -147,8 +152,8 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 									
 									if maximumPickedUpCompressionChests ~= false and maximumPickedUpCompressionChests > 0 then
 										if minedChests == nil then
-											glob.minedChests = {}
-											minedChests = glob.minedChests
+											global.minedChests = {}
+											minedChests = global.minedChests
 										end
 										
 										for n = 1,maximumPickedUpCompressionChests,1 do
@@ -162,7 +167,7 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 											minedChests[chestNumber] = {}
 											
 											-- Relies on the fact the Compression Chest only has one slot
-											for k2,v2 in pairs(entity.getinventory(1).getcontents()) do
+											for k2,v2 in pairs(entity.get_inventory(1).get_contents()) do
 												minedChests[chestNumber][1] = {name = k2, count = v2}	--Inventory of the chest
 											end
 											
@@ -170,28 +175,28 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 											minedChests[chestNumber][3] = v[3]							--Stored name
 											minedChests[chestNumber][4] = v[4]							--Stored half stack size
 											
-											entity.getinventory(1).clear()
+											entity.get_inventory(1).clear()
 											chestItemName = "compression-chest-mined-" .. chestNumber
 											
-											countBefore = player.getitemcount(chestItemName)
+											countBefore = player.get_item_count(chestItemName)
 											player.insert({name = chestItemName, count = 1})
-											countAfter = player.getitemcount(chestItemName)
+											countAfter = player.get_item_count(chestItemName)
 											if countBefore == countAfter then
-												game.createentity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
+												entity.surface.create_entity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
 											end
 											
---											if game.player.caninsert({name = chestItemName, count = 1}) then
+--											if game.player.can_insert({name = chestItemName, count = 1}) then
 --												game.player.insert({name = chestItemName, count = 1})
 --											else
---												game.createentity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
+--												game.create_entity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
 --											end
 											
 											table.remove(chests, k)
 											
-											if #glob.chests == 0 then
+											if #global.chests == 0 then
 												chests = nil
-												glob.chests = nil
-												game.onevent(defines.events.ontick, nil)
+												global.chests = nil
+												game.on_event(defines.events.on_tick, nil)
 											end
 										else
 											player.print("Unable to pick up Compression Chest with inventory:")
@@ -226,14 +231,14 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 										newChestPosition = {x = newX, y = newY}
 										
 										-- If the chest can't be placed at the new location put it back where it was
-										if not game.canplaceentity({name = "compression-chest", position = newChestPosition}) then
+										if not entity.surface.can_place_entity({name = "compression-chest", position = newChestPosition}) then
 											player.print("Unable to move Compression Chest - no room.")
 											newChestPosition = entity.position
 										end
 									end
 								end
 							else
-								player.print("Currently storing: " .. v[2] + v[11].getitemcount(v[3]) .. " " .. v[3])
+								player.print("Currently storing: " .. v[2] + v[11].get_item_count(v[3]) .. " " .. v[3])
 								
 								
 								if v[12] ~= nil then
@@ -254,19 +259,19 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 							end
 							
 							if newChestPosition ~= nil then
-								newChest = game.createentity({name = "compression-chest", position = newChestPosition, force = game.forces.player})
+								newChest = entity.surface.create_entity({name = "compression-chest", position = newChestPosition, force = game.forces.player})
 								
 								-- Relies on the fact the Compression Chest only has one slot
-								for k2,v2 in pairs(entity.getinventory(1).getcontents()) do
-									newChest.getinventory(1).insert({name = k2, count = v2})
+								for k2,v2 in pairs(entity.get_inventory(1).get_contents()) do
+									newChest.get_inventory(1).insert({name = k2, count = v2})
 								end
-								entity.getinventory(1).clear()
+								entity.get_inventory(1).clear()
 								
 								v[1] = newChest
-								v[11] = newChest.getinventory(1)
+								v[11] = newChest.get_inventory(1)
 								
 								if terminalChestInstalled then
-									v[8] = findNeighbouringTCs(newChestPosition)				--Neighbouring Terminal Chests
+									v[8] = findNeighbouringTCs(newChestPosition, newChest.surface)				--Neighbouring Terminal Chests
 									v[9] = 0													--All TC activity counter
 									v[10] = 0													--All TC extended non-activity counter
 								end
@@ -280,7 +285,7 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 									end
 								end
 								
-								v[12] = findNeighbouringCCPPs(newChestPosition)						--Compression chest power poles
+								v[12] = findNeighbouringCCPPs(newChestPosition, newChest.surface)						--Compression chest power poles
 								
 								if v[12] == nil then
 									if chestHadPower and chestHasPower ~= false then
@@ -291,25 +296,25 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 								end
 							end
 						else
-							countBefore = player.getitemcount("compression-chest")
+							countBefore = player.get_item_count("compression-chest")
 							player.insert({name = "compression-chest", count = 1})
-							countAfter = player.getitemcount("compression-chest")
+							countAfter = player.get_item_count("compression-chest")
 							if countBefore == countAfter then
-								game.createentity({name = "item-on-ground", position = event.entity.position, stack = {name = "compression-chest", count = 1}})
+								event.entity.surface.create_entity({name = "item-on-ground", position = event.entity.position, stack = {name = "compression-chest", count = 1}})
 							end
 							
---							if game.player.caninsert({name = "compression-chest", count = 1}) then
+--							if game.player.can_insert({name = "compression-chest", count = 1}) then
 --								game.player.insert({name = "compression-chest", count = 1})
 --							else
---								game.createentity({name = "item-on-ground", position = entity.position, stack = {name = "compression-chest", count = 1}})
+--								game.create_entity({name = "item-on-ground", position = entity.position, stack = {name = "compression-chest", count = 1}})
 --							end
 							
 							table.remove(chests, k)
 							
-							if #glob.chests == 0 then
+							if #global.chests == 0 then
 								chests = nil
-								glob.chests = nil
-								game.onevent(defines.events.ontick, nil)
+								global.chests = nil
+								game.on_event(defines.events.on_tick, nil)
 								break
 							end
 						end
@@ -322,10 +327,10 @@ game.onevent(defines.events.onpreplayermineditem, function(event)
 	end
 end)
 
-game.onevent(defines.events.onentitydied, function(event)
+game.on_event(defines.events.on_entity_died, function(event)
 	if chests ~= nil and event.entity.name == "compression-chest" then
 		for k,v in pairs(chests) do
-			if event.entity.equals(v[1]) then
+			if event.entity == v[1] then
 				if v[2] ~= 0 then
 					for _,player in pairs(game.players) do
 						player.print("All is lost! A Compression Chest was destroyed and with it all it's contents: " .. v[2] .. " " .. v[3] .. ".")
@@ -333,10 +338,10 @@ game.onevent(defines.events.onentitydied, function(event)
 				end
 				
 				table.remove(chests, k)
-				if #glob.chests == 0 then
+				if #global.chests == 0 then
 					chests = nil
-					glob.chests = nil
-					game.onevent(defines.events.ontick, nil)
+					global.chests = nil
+					game.on_event(defines.events.on_tick, nil)
 				end
 				break
 			end
@@ -347,15 +352,15 @@ end)
 function entityBuilt(event)
 	local chest
 	local newEntity
-	local createdEntity = event.createdentity
+	local createdEntity = event.created_entity
 	
 	if createdEntity.name == "compression-chest" then
-		if glob.chests == nil then
-			glob.chests = {}
-			chests = glob.chests
-			game.onevent(defines.events.ontick, tickChests)
-			if glob.ticks == nil then
-				glob.ticks = 0
+		if global.chests == nil then
+			global.chests = {}
+			chests = global.chests
+			game.on_event(defines.events.on_tick, tickChests)
+			if global.ticks == nil then
+				global.ticks = 0
 			end
 		end
 		
@@ -369,28 +374,28 @@ function entityBuilt(event)
 		chest[6] = 0														--Activity counter
 		chest[7] = 0														--Extended non-activity counter
 		if terminalChestInstalled then
-			chest[8] = findNeighbouringTCs(createdEntity.position)			--Neighbouring Terminal Chests
+			chest[8] = findNeighbouringTCs(createdEntity.position, createdEntity.surface)			--Neighbouring Terminal Chests
 			chest[9] = 0													--All TC activity counter
 			chest[10] = 0													--All TC extended non-activity counter
 		else
 			chest[8] = nil
 		end
-		chest[11] = createdEntity.getinventory(1)							--Inventory of the chest
-		chest[12] = findNeighbouringCCPPs(createdEntity.position)			--Compression chest power poles
+		chest[11] = createdEntity.get_inventory(1)							--Inventory of the chest
+		chest[12] = findNeighbouringCCPPs(createdEntity.position, createdEntity.surface)			--Compression chest power poles
 		chest[13] = createdEntity.position
 		
 		table.insert(chests, chest)
 	elseif createdEntity.name == "terminal-chest" then
-		linkNeighbouringCCsTC(createdEntity)
+		linkNeighbouringCCsTC(createdEntity, createdEntity.surface)
 	elseif createdEntity.name == "compression-power-pole-field" then
-		newEntity = game.createentity({name = "compression-power-pole", position = createdEntity.position, force = game.forces.player})
+		newEntity = createdEntity.surface.create_entity({name = "compression-power-pole", position = createdEntity.position, force = game.forces.player})
 		createdEntity.destroy()
-		linkNeighbouringCCsCP(newEntity)
+		linkNeighbouringCCsCP(newEntity, newEntity.surface)
 	elseif createdEntity.name == "reset-compression-chests" then
 		-- Resets the mined-chests list when placed in the world - used only in the event a mined chest item is destroyed
 		createdEntity.destroy()
 		minedChests = nil
-		glob.minedChests = nil
+		global.minedChests = nil
 		for _,player in pairs(game.players) do
 			player.print("Compression Chest mined-chest list reset - all existing Compression mined-chests will revert to standard Compression chests when placed.")
 		end
@@ -403,16 +408,16 @@ function entityBuilt(event)
 				chestNumber = tonumber(string.sub(createdEntity.name, 25))
 				
 				if minedChests[chestNumber] ~= nil then
-					if glob.chests == nil then
-						glob.chests = {}
-						chests = glob.chests
-						game.onevent(defines.events.ontick, tickChests)
-						if glob.ticks == nil then
+					if global.chests == nil then
+						global.chests = {}
+						chests = global.chests
+						game.on_event(defines.events.on_tick, tickChests)
+						if global.ticks == nil then
 							ticks = 0
 						end
 					end
 					
-					newEntity = game.createentity({name = "compression-chest", position = createdEntity.position, force = game.forces.player})
+					newEntity = createdEntity.surface.create_entity({name = "compression-chest", position = createdEntity.position, force = game.forces.player})
 					chest = {true, true, true, true, true, true, true, true, true, true, true, true, true}
 					
 					chest[1] = newEntity												--Created entity
@@ -423,15 +428,16 @@ function entityBuilt(event)
 					chest[6] = 0														--Activity counter
 					chest[7] = 0														--Extended non-activity counter
 					if terminalChestInstalled then
-						chest[8] = findNeighbouringTCs(newEntity.position)				--Neighbouring Terminal Chests
+						chest[8] = findNeighbouringTCs(newEntity.position, newEntity.surface)				--Neighbouring Terminal Chests
 						chest[9] = 0													--All TC activity counter
 						chest[10] = 0													--All TC extended non-activity counter
 					else
 						chest[8] = nil
 					end
-					chest[11] = newEntity.getinventory(1)								--Inventory of the chest
-					chest[12] = findNeighbouringCCPPs(newEntity.position)				--Compression chest power poles
+					chest[11] = newEntity.get_inventory(1)								--Inventory of the chest
+					chest[12] = findNeighbouringCCPPs(newEntity.position, newEntity.surface)				--Compression chest power poles
 					chest[13] = newEntity.position
+          chest[14] = newEntity.surface
 					
 					table.insert(chests, chest)
 					
@@ -451,7 +457,7 @@ function entityBuilt(event)
 					
 					if chestNumber ~= 0 then
 						minedChests = nil
-						glob.minedChests = nil
+						global.minedChests = nil
 					end
 				else
 					chestNumber = nil
@@ -459,7 +465,7 @@ function entityBuilt(event)
 			end
 			
 			if chestNumber == nil then
-				entityBuilt({createdentity = game.createentity({name = "compression-chest", position = createdEntity.position, force = game.forces.player})})
+				entityBuilt({created_entity = createdEntity.surface.create_entity({name = "compression-chest", position = createdEntity.position, force = game.forces.player})})
 			end
 			
 			createdEntity.destroy()
@@ -467,23 +473,23 @@ function entityBuilt(event)
 	end
 end
 
-game.onevent(defines.events.onbuiltentity, entityBuilt)
-game.onevent(defines.events.onrobotbuiltentity, entityBuilt)
+game.on_event(defines.events.on_built_entity, entityBuilt)
+game.on_event(defines.events.on_robot_built_entity, entityBuilt)
 
 function isTerminalChestInstalled()
-	if game.entityprototypes["terminal-chest"] == nil then
+	if game.entity_prototypes["terminal-chest"] == nil then
 		return false
 	else
 		return true
 	end
 end
 
-function findNeighbouringTCs(position)
+function findNeighbouringTCs(position, surface)
 	local neighbouringChests
 	local newChest
 	local terminalChests
 	
-	terminalChests = game.findentitiesfiltered({area = {{x = position.x - 1, y = position.y - 1}, {x = position.x + 1, y = position.y + 1}}, name = "terminal-chest"})
+	terminalChests = surface.find_entities_filtered({area = {{x = position.x - 1, y = position.y - 1}, {x = position.x + 1, y = position.y + 1}}, name = "terminal-chest"})
 	
 	for _,chest in pairs(terminalChests) do
 		if math.abs(position.x - chest.position.x) + math.abs(position.y - chest.position.y) == 1 then
@@ -494,7 +500,7 @@ function findNeighbouringTCs(position)
 			newChest = {true, true, true}
 			newChest[1] = chest												--Chest entity
 			newChest[2] = 0													--Activity counter
-			newChest[3] = chest.getinventory(1)								--Inventory of the chest
+			newChest[3] = chest.get_inventory(1)								--Inventory of the chest
 			
 			table.insert(neighbouringChests, newChest)
 		end
@@ -503,11 +509,11 @@ function findNeighbouringTCs(position)
 	return neighbouringChests
 end
 
-function findNeighbouringCCPPs(position)
+function findNeighbouringCCPPs(position, surface)
 	local poles = {}
 	local compressionPowerPoles
 	
-	compressionPowerPoles = game.findentitiesfiltered({area = {{x = position.x - 2.1, y = position.y - 2.1}, {x = position.x + 2.1, y = position.y + 2.1}}, name = "compression-power-pole"})
+	compressionPowerPoles = surface.find_entities_filtered({area = {{x = position.x - 2.1, y = position.y - 2.1}, {x = position.x + 2.1, y = position.y + 2.1}}, name = "compression-power-pole"})
 	
 	for _,pole in pairs(compressionPowerPoles) do
 		table.insert(poles, pole)
@@ -516,18 +522,18 @@ function findNeighbouringCCPPs(position)
 	return poles
 end
 
-function linkNeighbouringCCsTC(entity)
+function linkNeighbouringCCsTC(entity, surface)
 	local compressionChests
 	local newChest
 	
 	if chests ~= nil then
-		compressionChests = game.findentitiesfiltered({area = {{x = entity.position.x - 1, y = entity.position.y - 1}, {x = entity.position.x + 1, y = entity.position.y + 1}}, name = "compression-chest"})
+		compressionChests = surface.find_entities_filtered({area = {{x = entity.position.x - 1, y = entity.position.y - 1}, {x = entity.position.x + 1, y = entity.position.y + 1}}, name = "compression-chest"})
 		
 		for _,chest in pairs(compressionChests) do
 			if math.abs(entity.position.x - chest.position.x) + math.abs(entity.position.y - chest.position.y) == 1 then
 				for k,v in pairs(chests) do
 					-- Add the chest into any neighbouring compression chests
-					if chest.equals(v[1]) then
+					if chest == v[1] then
 						if v[8] == nil then
 							v[8] = {}											--Neighbouring Terminal Chests
 							v[9] = 0											--All TC activity counter
@@ -537,7 +543,7 @@ function linkNeighbouringCCsTC(entity)
 						newChest = {true, true, true}
 						newChest[1] = entity									--Chest entity
 						newChest[2] = 0											--Activity counter
-						newChest[3] = entity.getinventory(1)					--Inventory of the chest
+						newChest[3] = entity.get_inventory(1)					--Inventory of the chest
 						
 						table.insert(v[8], newChest)
 					end
@@ -547,16 +553,16 @@ function linkNeighbouringCCsTC(entity)
 	end
 end
 
-function linkNeighbouringCCsCP(entity)
+function linkNeighbouringCCsCP(entity, surface)
 	local compressionChests
 	
 	if chests ~= nil then
-		compressionChests = game.findentitiesfiltered({area = {{x = entity.position.x - 2.1, y = entity.position.y - 2.1}, {x = entity.position.x + 2.1, y = entity.position.y + 2.1}}, name = "compression-chest"})
+		compressionChests = surface.find_entities_filtered({area = {{x = entity.position.x - 2.1, y = entity.position.y - 2.1}, {x = entity.position.x + 2.1, y = entity.position.y + 2.1}}, name = "compression-chest"})
 		
 		for _,chest in pairs(compressionChests) do
 			for k,v in pairs(chests) do
 				-- Add the chest into any neighbouring compression chests
-				if chest.equals(v[1]) then
+				if chest == v[1] then
 					if v[12] == nil then
 						v[12] = {}											--Neighbouring compression chest power poles
 					end
@@ -569,7 +575,7 @@ function linkNeighbouringCCsCP(entity)
 end
 
 function tickChests()
-	if glob.ticks > 0 then glob.ticks = glob.ticks - 1 else glob.ticks = 10, executeTicks() end
+	if global.ticks > 0 then global.ticks = global.ticks - 1 else global.ticks = 10, executeTicks() end
 end
 
 function executeTicks()
@@ -606,7 +612,7 @@ function executeTicks()
 						for TC_k,TC_v in pairs(v[8]) do
 							if TC_v[1].valid then
 								if TC_v[2] == 0 then
-									itemCount = TC_v[3].getitemcount(v[3])
+									itemCount = TC_v[3].get_item_count(v[3])
 									
 									if itemCount > 0 then
 										energyRequired = itemCount * energyPerItemMoved
@@ -724,7 +730,7 @@ function executeTicks()
 							energyAvailable = nil
 						end
 						
-						for itemName,itemCount in pairs(v[11].getcontents()) do
+						for itemName,itemCount in pairs(v[11].get_contents()) do
 							chestHasContent = true
 							if itemName == v[3] then
 								if itemCount > v[4] then
@@ -862,7 +868,7 @@ function executeTicks()
 									end
 								end
 							elseif v[2] == 0 then
-								itemStackSize = game.itemprototypes[itemName].stacksize
+								itemStackSize = game.item_prototypes[itemName].stack_size
 								if itemStackSize >= 3 then
 									v[3] = itemName
 									v[4] = math.floor(itemStackSize / 3) * 2
@@ -961,29 +967,29 @@ function executeTicks()
 			for _,player in pairs(game.players) do
 				player.print("You can't remove a Compression Chest with robots or via other scripts due to game limitations - attempting to re-creating the chest at: x=" .. v[13].x .. ", y=" .. v[13].y .. "...")
 			end
-			newPosition = game.findnoncollidingposition("compression-chest", v[13], 10, 1)
+			newPosition = v[14].find_non_colliding_position("compression-chest", v[13], 10, 1)
 			
 			if newPosition ~= nil then
-				newChest = game.createentity({name = "compression-chest", position = newPosition, force = game.forces.player})
+				newChest = v[14].create_entity({name = "compression-chest", position = newPosition, force = game.forces.player})
 				
 				v[1] = newChest
-				v[11] = newChest.getinventory(1)
+				v[11] = newChest.get_inventory(1)
 				
 				if terminalChestInstalled then
-					v[8] = findNeighbouringTCs(newPosition)						--Neighbouring Terminal Chests
+					v[8] = findNeighbouringTCs(newPosition, newChest.surface)						--Neighbouring Terminal Chests
 				end
 				
-				v[12] = findNeighbouringCCPPs(newPosition)						--Compression chest power poles
+				v[12] = findNeighbouringCCPPs(newPosition, newChest.surface)						--Compression chest power poles
 				v[13] = newPosition
 			else
 				for _,player in pairs(game.players) do
 					player.print("Impressive, you managed to find a way to erase the contents of a Compression Chest :) You may or may not want to reload and not do what you just did.")
 				end
 				table.remove(chests, k)
-				if #glob.chests == 0 then
+				if #global.chests == 0 then
 					chests = nil
-					glob.chests = nil
-					game.onevent(defines.events.ontick, nil)
+					global.chests = nil
+					game.on_event(defines.events.on_tick, nil)
 					break
 				end
 			end

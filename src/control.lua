@@ -8,54 +8,52 @@ local energyPerItemMoved = 1000
 -- Setting this to false disables the picking up of compression chests
 -- Set to 0 to enable - NOTE you must also enable the research in Compression Chests\prototypes\technologies.lua
 local maximumPickedUpCompressionChests = false
-local loaded
 
-game.on_load(function()
-	if not loaded then
-		loaded = true
-		
-		terminalChestInstalled = isTerminalChestInstalled()
-		
-		if global.chests ~= nil then
-			chests = global.chests
-			game.on_event(defines.events.on_tick, tickChests)
-			if global.ticks == nil then
-				global.ticks = 0
-			end
-      
-      local prototypes = game.item_prototypes
-      for k,chest in pairs(chests) do
-        if chest[1].valid and chest[14] == nil then
-          chest[14] = chest[1].surface
-        end
-        
-        if chest[3] ~= nil and prototypes[chest[3]] == nil then
-          chest[2] = 0														--Stored count
-          chest[3] = nil                          --Stored name
-          chest[4] = nil                          --Stored half stack size
-          chest[5] = 0														--General sleep timer
-          chest[6] = 0														--Activity counter
-          chest[7] = 0														--Extended non-activity counter
-        end
-        
-        if not terminalChestInstalled then
-          chest[8] = nil
-        end
+
+script.on_configuration_changed(function(data)
+  terminalChestInstalled = isTerminalChestInstalled()
+  if global.chests ~= nil then
+    local prototypes = game.item_prototypes
+    for k,chest in pairs(chests) do
+      if chest[1].valid and chest[14] == nil then
+        chest[14] = chest[1].surface
       end
-		end
-		
-		if global.minedChests ~= nil then
-			minedChests = global.minedChests
-		end
-	end
+      
+      if chest[3] ~= nil and prototypes[chest[3]] == nil then
+        chest[2] = 0														--Stored count
+        chest[3] = nil                          --Stored name
+        chest[4] = nil                          --Stored half stack size
+        chest[5] = 0														--General sleep timer
+        chest[6] = 0														--Activity counter
+        chest[7] = 0														--Extended non-activity counter
+      end
+      
+      if not terminalChestInstalled then
+        chest[8] = nil
+      end
+    end
+  end
 end)
 
-game.on_init(function()
+script.on_load(function()
+  if global.chests ~= nil then
+    chests = global.chests
+    script.on_event(defines.events.on_tick, tickChests)
+    if global.ticks == nil then
+      global.ticks = 0
+    end
+  end
+  
+  if global.minedChests ~= nil then
+    minedChests = global.minedChests
+  end
+end)
+
+script.on_init(function()
 	terminalChestInstalled = isTerminalChestInstalled()
-	loaded = true
 end)
 
-game.on_event(defines.events.on_preplayer_mined_item, function(event)
+script.on_event(defines.events.on_preplayer_mined_item, function(event)
 	local entity = event.entity
 	local playerItemCount
 	local insertedCount
@@ -70,7 +68,7 @@ game.on_event(defines.events.on_preplayer_mined_item, function(event)
 	local countBefore
 	local countAfter
 	local chestHasPower
-	local player = game.players[event.player_index]
+	local player = game.get_player(event.player_index)
 	
 	if entity.name == "compression-chest" then
 		if chests ~= nil then
@@ -196,7 +194,7 @@ game.on_event(defines.events.on_preplayer_mined_item, function(event)
 											if #global.chests == 0 then
 												chests = nil
 												global.chests = nil
-												game.on_event(defines.events.on_tick, nil)
+												script.on_event(defines.events.on_tick, nil)
 											end
 										else
 											player.print("Unable to pick up Compression Chest with inventory:")
@@ -314,7 +312,7 @@ game.on_event(defines.events.on_preplayer_mined_item, function(event)
 							if #global.chests == 0 then
 								chests = nil
 								global.chests = nil
-								game.on_event(defines.events.on_tick, nil)
+								script.on_event(defines.events.on_tick, nil)
 								break
 							end
 						end
@@ -327,7 +325,7 @@ game.on_event(defines.events.on_preplayer_mined_item, function(event)
 	end
 end)
 
-game.on_event(defines.events.on_entity_died, function(event)
+script.on_event(defines.events.on_entity_died, function(event)
 	if chests ~= nil and event.entity.name == "compression-chest" then
 		for k,v in pairs(chests) do
 			if event.entity == v[1] then
@@ -341,7 +339,7 @@ game.on_event(defines.events.on_entity_died, function(event)
 				if #global.chests == 0 then
 					chests = nil
 					global.chests = nil
-					game.on_event(defines.events.on_tick, nil)
+					script.on_event(defines.events.on_tick, nil)
 				end
 				break
 			end
@@ -358,7 +356,7 @@ function entityBuilt(event)
 		if global.chests == nil then
 			global.chests = {}
 			chests = global.chests
-			game.on_event(defines.events.on_tick, tickChests)
+			script.on_event(defines.events.on_tick, tickChests)
 			if global.ticks == nil then
 				global.ticks = 0
 			end
@@ -411,7 +409,7 @@ function entityBuilt(event)
 					if global.chests == nil then
 						global.chests = {}
 						chests = global.chests
-						game.on_event(defines.events.on_tick, tickChests)
+						script.on_event(defines.events.on_tick, tickChests)
 						if global.ticks == nil then
 							ticks = 0
 						end
@@ -473,8 +471,8 @@ function entityBuilt(event)
 	end
 end
 
-game.on_event(defines.events.on_built_entity, entityBuilt)
-game.on_event(defines.events.on_robot_built_entity, entityBuilt)
+script.on_event(defines.events.on_built_entity, entityBuilt)
+script.on_event(defines.events.on_robot_built_entity, entityBuilt)
 
 function isTerminalChestInstalled()
 	if game.entity_prototypes["terminal-chest"] == nil then
@@ -989,7 +987,7 @@ function executeTicks()
 				if #global.chests == 0 then
 					chests = nil
 					global.chests = nil
-					game.on_event(defines.events.on_tick, nil)
+					script.on_event(defines.events.on_tick, nil)
 					break
 				end
 			end

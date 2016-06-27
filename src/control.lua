@@ -1,5 +1,3 @@
-require "defines"
-
 local chests
 local minedChests
 local terminalChestInstalled
@@ -68,7 +66,7 @@ script.on_event(defines.events.on_preplayer_mined_item, function(event)
 	local countBefore
 	local countAfter
 	local chestHasPower
-	local player = game.get_player(event.player_index)
+	local player = game.players[event.player_index]
 	
 	if entity.name == "compression-chest" then
 		if chests ~= nil then
@@ -183,12 +181,6 @@ script.on_event(defines.events.on_preplayer_mined_item, function(event)
 												entity.surface.create_entity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
 											end
 											
---											if game.player.can_insert({name = chestItemName, count = 1}) then
---												game.player.insert({name = chestItemName, count = 1})
---											else
---												game.create_entity({name = "item-on-ground", position = entity.position, stack = {name = chestItemName, count = 1}})
---											end
-											
 											table.remove(chests, k)
 											
 											if #global.chests == 0 then
@@ -202,7 +194,6 @@ script.on_event(defines.events.on_preplayer_mined_item, function(event)
 											player.print("")
 											player.print("If for some reason the previous picked up chests don't exist you can:")
 											player.print("Spawn in a \"reset-compression-chests\" and placing it in the world to reset the picked-up chest list.")
-											--game.player.print("If you do place a \"reset-compression-chests\" *ALL* picked-up compression chests will lose their inventories.")
 											newChestPosition = entity.position
 										end
 									else
@@ -300,12 +291,6 @@ script.on_event(defines.events.on_preplayer_mined_item, function(event)
 							if countBefore == countAfter then
 								event.entity.surface.create_entity({name = "item-on-ground", position = event.entity.position, stack = {name = "compression-chest", count = 1}})
 							end
-							
---							if game.player.can_insert({name = "compression-chest", count = 1}) then
---								game.player.insert({name = "compression-chest", count = 1})
---							else
---								game.create_entity({name = "item-on-ground", position = entity.position, stack = {name = "compression-chest", count = 1}})
---							end
 							
 							table.remove(chests, k)
 							

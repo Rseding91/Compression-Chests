@@ -37,9 +37,6 @@ script.on_load(function()
   if global.chests ~= nil then
     chests = global.chests
     script.on_event(defines.events.on_tick, tickChests)
-    if global.ticks == nil then
-      global.ticks = 0
-    end
   end
   
   if global.minedChests ~= nil then

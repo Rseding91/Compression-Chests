@@ -4,7 +4,7 @@ data:extend(
 			type = "container",
 			name = "compression-chest",
 			icon = "__Compression Chests__/graphics/Compression chest - Icon.png",
-			flags = {"placeable-neutral", "player-creation"},
+			flags = {"placeable-neutral", "player-creation", "not-deconstructable"},
 			open_sound = { filename = "__base__/sound/metallic-chest-open.ogg", volume=0.65 },
 			close_sound = { filename = "__base__/sound/metallic-chest-close.ogg", volume = 0.7 },
 			minable = {mining_time = 3, result = "compression-chest", count = 0},

@@ -7,7 +7,7 @@ data:extend(
 			type = "technology",
 			name = "move-compression-chest",
 			icon = "__Compression Chests__/graphics/Picked up chest count.png",
-			prerequisites = {"logistics-3", "alien-technology"},
+			prerequisites = {"logistics-3"},
 			effects =
 			{
 				{
@@ -22,8 +22,7 @@ data:extend(
 				{
 					{"science-pack-1", 2},
 					{"science-pack-2", 2},
-					{"science-pack-3", 2},
-					{"alien-science-pack", 1}
+					{"science-pack-3", 2}
 				},
 				time = 45,
 				
@@ -44,8 +43,7 @@ data:extend(
 				{
 					{"science-pack-1", 2},
 					{"science-pack-2", 2},
-					{"science-pack-3", 2},
-					{"alien-science-pack", 1}
+					{"science-pack-3", 2}
 				},
 				time = 45,
 				
@@ -65,8 +63,7 @@ data:extend(
 				{
 					{"science-pack-1", 2},
 					{"science-pack-2", 2},
-					{"science-pack-3", 2},
-					{"alien-science-pack", 1}
+					{"science-pack-3", 2}
 				},
 				time = 45,
 				
@@ -86,8 +83,7 @@ data:extend(
 				{
 					{"science-pack-1", 3},
 					{"science-pack-2", 3},
-					{"science-pack-3", 2},
-					{"alien-science-pack", 1}
+					{"science-pack-3", 2}
 				},
 				time = 45,
 				
@@ -108,8 +104,7 @@ data:extend(
 				{
 					{"science-pack-1", 3},
 					{"science-pack-2", 3},
-					{"science-pack-3", 3},
-					{"alien-science-pack", 2}
+					{"science-pack-3", 3}
 				},
 				time = 45,
 				
@@ -130,8 +125,7 @@ data:extend(
 				{
 					{"science-pack-1", 3},
 					{"science-pack-2", 3},
-					{"science-pack-3", 3},
-					{"alien-science-pack", 3}
+					{"science-pack-3", 3}
 				},
 				time = 45,
 				

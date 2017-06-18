@@ -94,7 +94,7 @@ data:extend(
 				line_length = 1,
 				frame_count = 1,
 				shift = {0.49145, -0.25},
-				animation_speed = 0
+				animation_speed = 1
 			},
 			charge_cooldown = 45,
 			discharge_cooldown = 90,
